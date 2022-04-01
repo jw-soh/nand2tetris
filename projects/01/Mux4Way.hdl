@@ -1,0 +1,32 @@
+// This file is created by Jun as an initiative to implement the Mux4Way16 gate
+// The idea is to use the same method as how the Mux16 is implemented and apply it 
+// to a Mux4Way16.
+// File name: projects/01/Mux4Way.hdl
+
+CHIP Mux4Way {
+    IN a, b, c, d, sel[2];
+    OUT out;
+
+    PARTS:
+    // Put your code here:
+    Not(in=sel[0], out=notSel0);
+    Not(in=sel[1], out=notSel1);
+
+    // The 4 pairs of And gates below could use an Abstraction of And3
+    And(a=notSel0, b=notSel1, out=w0);
+    And(a=w0, b=a, out=w00);
+    
+    And(a=sel[0], b=notSel1, out=w1);
+    And(a=w1, b=b, out=w01);
+
+    And(a=notSel0, b=sel[1], out=w2);
+    And(a=w2, b=c, out=w02);
+
+    And(a=sel[0], b=sel[1], out=w3);
+    And(a=w3, b=d, out=w03);
+
+    // The Or gates below are the raw implementation of a Or4Way
+    Or(a=w00, b=w01, out=o1);
+    Or(a=o1, b=w02, out=o2);
+    Or(a=o2, b=w03, out=out);
+}

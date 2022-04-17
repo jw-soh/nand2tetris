@@ -42,5 +42,74 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-   // Put you code here:
+    // Put you code here:
+
+    // f(x,y) = -x (negx)
+    Add16(a=x, b=true, out=z1);
+    Not16(in=z1, out=negx);
+
+    // f(x,y) = -y (negy)
+    Add16(a=true, b=y, out=z2);
+    Not16(in=z2, out=negy);
+
+    // MUX-0 
+    // (Used to select the desired functionality by selecting the required output 
+    // from one of the 8 Mux8Way16 chips below)
+
+    /* e.g. 
+     * zx=1, nx=0, zy=1, ny=0, f=1, no=0
+    /* Selection bits above will imply function f(x,y) = 0 is required as out[16] of the ALU.
+     * Lower order select lines ny, f and no would be used to select MUX-6's input c as it's 
+     * output which will subsequently be fed into input f of MUX-0.
+     * Higher order select lines zx, nx, zy would be used to "select" one of the 8 Mux8Way16 
+     * chips below which in this case is MUX-6 or the 6th MUX. 
+     * 101 (zx=1, nx=0, zy=1) is 6 in decimal.
+     */
+
+     // ng output is derived from getting the most significant bit of out as it denotes the sign of the number 
+    Mux8Way16(a=mux1out, b=mux2out, c=mux3out, d=mux4out, e=mux5out, f=mux6out, g=mux7out, h=mux8out, sel[0]=zy, sel[1]=nx, sel[2]=zx, out=out, out[0..7]=zrIn1, out[8..15]=zrIn2, out[15]=ng);
+
+    // MUX-1
+    And16(a=x, b=y, out=xANDy);
+    Add16(a=x, b=y, out=xPLUSy);
+    Add16(a=y, b=negx, out=yPLUSnegx);
+    Mux8Way16(a=xANDy, b=false, c=xPLUSy, d=false, e=false, f=false, g=false, h=yPLUSnegx, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux1out);
+
+    // MUX-2
+    Not16(in=x, out=notx);
+    Add16(a=x, b=true, out=xSUBTRACTone);
+    Mux8Way16(a=false, b=false, c=false, d=false, e=x, f=notx, g=xSUBTRACTone, h=negx, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux2out);
+
+    // MUX-3
+    Add16(a=x, b=negy, out=xPLUSnegy);
+    Or16(a=x, b=y, out=xORy);
+    Mux8Way16(a=false, b=false, c=false, d=xPLUSnegy, e=false, f=xORy, g=false, h=false, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux3out);
+
+    // MUX-4
+    Add16(a=x, b[0]=true, out=xPLUSone);
+    Mux8Way16(a=false, b=false, c=false, d=false, e=false, f=false, g=false, h=xPLUSone, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux4out);
+
+    // MUX-5 (Unused in this implementation)
+    Mux8Way16(a=false, b=false, c=false, d=false, e=false, f=false, g=false, h=false, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux5out);
+
+    // MUX-6
+    // f(x,y) = 0 is provided into input c as falsey
+    Mux8Way16(a=false, b=false, c=false, d=false, e=false, f=false, g=false, h=false, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux6out);
+
+    // MUX-7
+    Not16(in=y, out=noty);
+    Add16(a=y, b=true, out=ySUBTRACTone);
+    Add16(a=y, b[0]=true, out=yPLUSone);
+    Mux8Way16(a=y, b=noty, c=ySUBTRACTone, d=negy, e=false, f=false, g=false, h=yPLUSone, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux7out);
+
+    // MUX-8
+    // f(x,y) = -1 is provided into input c as truthy (i.e true=1111111111111111 which is 2's complement of -1)
+    Mux8Way16(a=false, b=false, c=true, d=false, e=false, f=false, g=false, h[0]=true, sel[0]=no, sel[1]=f, sel[2]=ny, out=mux8out);
+
+    // output: zr 
+    // Implemented using Nor16Way (Built using 2 Or8Way and an Or gate)
+    Or8Way(in=zrIn1, out=or8wayOut1);
+    Or8Way(in=zrIn2, out=or8wayOut2);
+    Or(a=or8wayOut1, b=or8wayOut2, out=or16wayOut);
+    Not(in=or16wayOut, out=zr);
 }
